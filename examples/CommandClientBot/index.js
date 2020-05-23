@@ -1,6 +1,6 @@
 const Dcord = require('./dcord/src');
 
-const bot = new Dcord.CommandClient({debug: false, disabledEvents: ['PRESENCE_UPDATE'], prefix: '!', commandDir: 'cmds'})
+const bot = new Dcord.CommandClient({mobile: true, debug: false, disabledEvents: ['PRESENCE_UPDATE'], prefix: '!', commandDir: 'cmds'})
 
 
 bot.on('ready', async () => {

@@ -1,6 +1,3 @@
-
-
-
 class Command{
     constructor(options){
         this.name = options.name;
@@ -8,8 +5,7 @@ class Command{
         this.category = options.category;
     }
 
-
-    async execute(message, args){
+    async execute(message, args) { 
         
     }
 }

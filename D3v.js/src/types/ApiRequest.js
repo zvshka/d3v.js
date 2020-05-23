@@ -1,19 +1,20 @@
 const axios = require('axios').default;
+const endpoint = 'https://discord.com/api/v6';
 
-const endpoint = 'https://discord.com/api/v6'
-
-async function ApiRequest(options, token){
-        let body = options.body;
-        let method = options.method;
-        console.log(`${endpoint}${options.url}`)
+/**
+ * 
+ * @param {Object} options Api request options
+ * @param {Client} Client bot client
+ * @private
+ */
+async function ApiRequest(options, client){
         return await axios(`${endpoint}${options.url}`, {
-            method: method,
-            data: body,
+            method: options.method || 'GET',
+            data: options.body,
             headers: {
-                'Authorization': token
+                'Authorization': client.token
             }
         }).then(x => x.data)
 }
-
 
 module.exports = ApiRequest;

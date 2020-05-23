@@ -15,6 +15,14 @@ class User{
         this.bot = options.bot || false;
     }
 
+    /**
+     * 
+     * @description Send message to user
+     * 
+     * @param {String} content Message content or data
+     * @param {Object} options Message options
+     */
+
     async send(content, options){
         if(!this.channelID) await this.openDM();
         if(!options) options = {tts: false};
@@ -22,6 +30,12 @@ class User{
         return message
     }
 
+
+    /**
+     * @description Open user DM
+     * 
+     * 
+     */
 
     async openDM() {
         const data = await axios(`https://discord.com/api/v6/users/${this.client.user.id}/channels`, {

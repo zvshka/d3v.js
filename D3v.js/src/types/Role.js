@@ -55,6 +55,31 @@ class Role {
         return this;
     }
 
+    /**
+     * Data for role
+     * 
+     * @typedef {Object} RoleData
+     * 
+     * @property {String} [name] name of role
+     * 
+     * @property {Boolean} [mentionable] is allowed to mention this role?
+     * 
+     * @property {number} [permissions] permissions integer
+     * 
+     * @property {String} [color] Color HEX code
+     * 
+     * @property {Boolean} [hoist] is this role Hoist?
+     * 
+     */
+
+    /**
+     * 
+     * @description Edit role by role data
+     * 
+     * @param {RoleData} data Role options
+     * @param {String} [reason] Ready why we doing it
+     */
+
     async edit(data, reason) {
         if(this.deleted) return;
 
@@ -81,5 +106,7 @@ class Role {
         return this;
     }
 }
+
+
 
 module.exports = Role;

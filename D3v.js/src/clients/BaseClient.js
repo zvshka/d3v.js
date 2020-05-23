@@ -2,50 +2,54 @@ const WebSocket = require('ws');
 const axios = require('axios');
 const Enmap = require('enmap');
 
-const EventEmit = require('events');
+const {EventEmitter } = require('events');
 
 const Guild = require('../types/Guild');
 const Message = require('../types/Message');
 const ClientUser = require('../types/ClientUser');
-const TextChannel = require('../types/TextChannel');
 const Role = require('../types/Role');
-const Activity = require('../types/Activity');
-const RolesManager = require('../Manager/RolesManager');
-
+const GuildManager = require('../Manager/GuildManager')
+const GlobalChannelManager = require('../Manager/GlobalChannelManager');
+const UserManager = require('../Manager/UserManager');
 
 /**
  * 
  * @description Client base 
  * 
+ * @extends {EventEmitter}
  * @private
  */
-class BaseClient{
-    constructor(options){
-        this.debug = options.debug || false;
-
-        this.events = new EventEmit.EventEmitter();
+class BaseClient {
+    constructor(options) {
+       this.debug = options.debug || false;
+       this.events = new EventEmitter();
         this.hb = 0;
+        this.user = null;
+        this.channels = new GlobalChannelManager({client: this});
+        this.users = new UserManager({client: this});
         this.token;
-        this.user;
 
         this.disabledEvents = options.disabledEvents || [];
 
-        
-        const ClientUser = require('../types/ClientUser');
-
-        this.guilds = new Enmap();
-        this.channels = new Enmap();
-        
-
         this.authOP = {
             "op":2,
-                "d":
-                    {"token":"",
-                     "properties":
-                                {"os":process.platform,"browser":"dcord","device":""}}};
+            "d": { 
+                "token":"",
+                "properties": {
+                    "os": process.platform,
+                    "browser": options.mobile ? "Discord Android" : "Netscape Navigator",
+                    "device": "D3v.js"
+                },
+                "large_threshold": true
+            }
+        };
 
         this.enpoint = 'wss://gateway.discord.gg/?v=6&encoding=json';
         this.isReady = false;
+
+        /* Cache managers */
+        this.guilds = new GuildManager({ client: this })
+        this.channels = new Enmap();
     }
 
 
@@ -53,7 +57,7 @@ class BaseClient{
      * @description register events A.K.A start
      * @private
      */
-    async registerEvents(){
+    async registerEvents() {
         this.ws = new WebSocket(this.enpoint);
 
         this.ws.on('open', async() => {
@@ -74,6 +78,8 @@ class BaseClient{
                      * @event Client#Ready
                      * 
                      */
+
+                    this.user = new ClientUser(data.d.user)
                     this.events.emit('ready');
                     this.isReady = true;
                     break;
@@ -99,9 +105,9 @@ class BaseClient{
                     break;
                 case 'GUILD_CREATE':
                     data.d.client = this;
-                    if(!this.isReady) return;
-                    let guild = new Guild(data.d);
-                    this.guilds.set(guild.id, guild);
+
+
+                    this.guilds.loadGuilds(data.d);
 
 
                     /**
@@ -113,7 +119,7 @@ class BaseClient{
                      * @param {Guild} guild
                      * 
                      */
-                    this.events.emit('guildJoin', (guild));
+                    this.events.emit('guildJoin');
                     break;
                 case 'MESSAGE_CREATE':
                     let message = new Message(data.d);
@@ -131,18 +137,23 @@ class BaseClient{
                     break;
                 
                 default:
+                    if(data.op == 11) return;
                     if(!this.isReady){
                         if(!data.d.heartbeat_interval) return;
                         this.hb = data.d.heartbeat_interval;
 
                         await this.startHeartBeat(this.hb);
                         return;
+                        
                     }
+
+                    this.events.emit(`RAW_${data.t}`, data)
                     console.warn(`UNKNOWN EVENT ${data.t}`);
+                    
                     break;
             }
             
-            if(this.debug) console.log(data);
+            //if(this.debug) console.log(data);
         })
     }
 
@@ -158,6 +169,27 @@ class BaseClient{
                 d: null
             })
         }, interval)
+    }
+
+
+    /**
+     * 
+     * @description Check is this token valid
+     * 
+     * @param {String} token Token of user/bot
+     * @param {*} bot is this token for user?
+     * 
+     * @private
+     */
+    async checkToken(token, bot=true){
+        const data = await axios('https://discordapp.com/api/v6/users/@me', {
+            method: 'GET', 
+            headers: {
+                'Authorization': `${bot ? 'Bot ' : ''}${token}`
+            }
+        }).then(x => x.data).catch(e => {
+            throw new InvalidTokenException('Invalid token was provided')
+        } );
     }
 
 
@@ -204,10 +236,7 @@ class BaseClient{
 
     /**
      * @description start bot
-     * 
-     * 
      */
-
     async start(){
         await this.registerEvents()
     }
@@ -228,6 +257,28 @@ class BaseClient{
         }).then(x => x.data);
 
         return data;
+    }
+
+
+    async sendMessage(chid, content, options = {tts: false}, embed = {}){
+        let d = await axios(`https://discordapp.com/api/v6/channels/${chid}/messages`, {
+            method: 'POST',
+
+            headers: {
+                'Authorization': this.token
+            }, 
+
+            data: {
+                content: content,
+                embed: embed,
+                nonce: 0,
+                tts: options.tts
+            }
+            
+        }).then(x => x.data);
+        d.client = this;
+
+        return new Message(d)
     }
 
     /**
@@ -255,38 +306,12 @@ class BaseClient{
      * @description load guilds
      * 
      * @private
+     * 
+     * @deprecated
      */
 
     async loadGuilds() {
-        const data = await axios('https://discord.com/api/v6/users/@me/guilds', {
-            method: 'GET',
-            headers: {
-                'Authorization': this.token
-            }
-        }).then(x => x.data);
-        data.client = this;
-
-        for(let i = 0; i < data.length; i++) {
-            data[i].client = this;
-            let guild = new Guild(data[i]);
-
-            let channels = await this.loadChannels(guild.id);
-            channels.forEach(c => {
-                if(c.type !== 0) return console.log(`UNKNWON CHANNEL TYPE ${c.type}`);
-                c.client = this;
-                c.guildID = guild.id;
-                c.guild = guild;
-
-                const channel = new TextChannel(c);
-                this.channels.set(channel.id, channel);
-                channels
-            });
-
-          
-            
-
-            this.guilds.set(guild.id, guild)
-        }
+        
     }
 
     /**
@@ -298,7 +323,7 @@ class BaseClient{
      */
 
     async login(token, bot = true) {
-        
+        await this.checkToken(token, bot)
         this.token = `${bot ? 'Bot ' : ''}${token}`;
         this.authOP.d.token = `${bot ? 'Bot ' : ''}${token}`
         await this.loadGuilds()
@@ -313,6 +338,7 @@ class BaseClient{
      */
 
     async run(token, bot = true) {
+        
         await this.login(token, bot);
         await this.registerEvents();
 
@@ -322,4 +348,7 @@ class BaseClient{
   
 }
 
-module.exports = BaseClient
+
+
+class InvalidTokenException extends Error{};
+module.exports = BaseClient;

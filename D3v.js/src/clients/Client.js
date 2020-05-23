@@ -23,8 +23,14 @@ class Client extends BaseClient{
         
     }
 
-    on(...args){
-        this.events.on(...args)
+    /**
+     * 
+     * @param  {String} event name
+     * @param  {Function} f Function
+     * 
+     */
+    on(event, f){
+        this.events.on(event, f)
     }
 
     /**
@@ -41,7 +47,7 @@ class Client extends BaseClient{
      * 
      * @description Get User by ID
      * 
-     * @param {*} userid User ID
+     * @param {String} userid User ID
      * 
      * @returns {User} user if its exists
      * 
@@ -59,6 +65,16 @@ class Client extends BaseClient{
         return new User(data);
     }
 
+    /**
+     * 
+     * @description Get Guild by id if it exists
+     * 
+     * @param {String} guildid Guild ID
+     * 
+     * @returns {Guild} guild
+     * 
+     */
+
     async fetchGuild(guildid) {
         const data = await axios(`https://discordapp.com/api/v6/users/${guildid}`, {
             method: 'GET', 
@@ -69,6 +85,15 @@ class Client extends BaseClient{
         
         return new Guild(data);
     }
+
+    /**
+     * 
+     * @description Get Channel by ID if it exists
+     * 
+     * @param {String} channelID 
+     * 
+     * @returns {Channel} channel
+     */
 
     async fetchChannel(channelID) {
         const data = await axios(`https://discordapp.com/api/v6/channels/${channelID}`, {
@@ -82,23 +107,20 @@ class Client extends BaseClient{
         return new TextChannel(data);
     }
 
-    async sendMessage(chid, content, options = {tts: false}, embed = {}){
+    /**
+     * 
+     * @param {String} chid Channel ID to send
+     * @param {Object} content Message content of object
+     * @param {Object} options Message options
+     * @param {*} embed Embed if it exists
+     */
 
-        let d = await axios(`https://discordapp.com/api/v6/channels/${chid}/messages`, {
-            method: 'POST',
-
-            headers: {
-                'Authorization': this.token
-            }, 
-
-            data: {
-                content: content,
-                embed: embed,
-                nonce: 0,
-                tts: options.tts
-            }
-            
-        }).then(x => x.data);
+    async sendMessage(chid, content, options = {tts: false}, embed = {}, token){
+        let d = await ApiRequest({url: `/channels/${chid}/messages`, method: 'POST', body: {
+            content: content,
+            nonce: 0,
+            embed: embed,
+            tts: options.tts}}, token)
         d.client = this;
 
         return new Message(d)
@@ -106,20 +128,6 @@ class Client extends BaseClient{
 
     async apiRequest(options){
         return await ApiRequest({url: options.url, method: options.method}, this.token);
-    }
-
- 
-
-    async removeMemberRole(guildid, member, role){
-        let d = await axios(`https://discord.com/api/v6/guilds/${guildid}/members/${member.id}/roles/${role.id}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': this.token
-            },
-        }).then(x => x.data);
-        d.client = this;
-
-        
     }
 }
 

@@ -18,8 +18,8 @@ const Message = require('../types/Message')
  * 
  * 
  */
-class CommandClient extends Client{
-    constructor(options){
+class CommandClient extends Client {
+    constructor(options) {
         super(options);
         this.prefix = options.prefix || '!';
         this.commands = new Enmap();
@@ -63,7 +63,9 @@ class CommandClient extends Client{
     async execute(commandName, message, args){
         try{
             /**
-             * @event
+             * Emits when command executed
+             * 
+             * @event CommandClient#commandInvoke
              * 
              * @param {String} commandName Command Name
              * @param {Message} message Message for command
@@ -77,11 +79,13 @@ class CommandClient extends Client{
         await command.execute(message, args).catch(e => this.emit('commandInvokeError', message, args, e));
         }catch(e){
                 /**
+                 * Emits when command execution was failed
+                 * 
                  * @event CommandClient#commandInvokeError
                  * 
-                 * @param {Message} message
+                 * @param {Message} message message object
                  * @param {Array} command args
-                 * @param {Error} error
+                 * @param {Error} error Error object
                  */
                 this.emit('commandInvokeError', message, args, e)
         }

@@ -46,7 +46,7 @@ class Message {
         
         this.attachments = options.attachments;
         this.guild_id = options.guild_id;
-        this.guild = this.client.guilds.get(this.guild_id);
+        //this.guild = this.client.guilds.get(this.guild_id);
     }
 
     async fetchAuthor(id){

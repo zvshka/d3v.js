@@ -11,12 +11,12 @@ class Member extends User {
         this.hoisted_role = options.hoisted_role;
         this.deaf = options.deaf;
         this.guildID = options.guildID;
-        this.guild = this.client.guilds.get(this.guildID);
+        //this.guild = this.client.guilds.get(this.guildID);
     }
 
 
     async removeRole(role){
-        this.client.removeRole()
+        
     }
 }
 
