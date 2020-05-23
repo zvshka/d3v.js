@@ -12,6 +12,13 @@ const Role = require('../types/Role');
 const Activity = require('../types/Activity');
 const RolesManager = require('../Manager/RolesManager');
 
+
+/**
+ * 
+ * @description Client base 
+ * 
+ * @private
+ */
 class BaseClient{
     constructor(options){
         this.debug = options.debug || false;
@@ -42,6 +49,10 @@ class BaseClient{
     }
 
 
+    /**
+     * @description register events A.K.A start
+     * @private
+     */
     async registerEvents(){
         this.ws = new WebSocket(this.enpoint);
 
@@ -54,8 +65,15 @@ class BaseClient{
             if(data.d) data.d.client = this;
             if(this.disabledEvents.includes(data.t)) return;
             switch (data.t) {
+                
                 case 'READY':
                     await this.createUserClient()
+
+                    /**
+                     * Emit Ready event 
+                     * @event Client#Ready
+                     * 
+                     */
                     this.events.emit('ready');
                     this.isReady = true;
                     break;
@@ -63,9 +81,20 @@ class BaseClient{
 
                     break;
                 case 'ROLE_CREATE':
+
+
                     data.d.client = this;
                     const role = new Role(data.d);
-                    this.guilds.get(data.d.guildID).roles.set(data.d.id, role)
+                    this.guilds.get(data.d.guildID).roles.set(data.d.id, role);
+
+                    /**
+                     * 
+                     * Emits when role was created!
+                     * 
+                     * @event Client#roleCreate
+                     * 
+                     * @param {Role} role...
+                     */
                     this.events.emit('roleCreate', (role));
                     break;
                 case 'GUILD_CREATE':
@@ -73,10 +102,31 @@ class BaseClient{
                     if(!this.isReady) return;
                     let guild = new Guild(data.d);
                     this.guilds.set(guild.id, guild);
+
+
+                    /**
+                     * 
+                     * Emits when bot joined guild!
+                     * 
+                     * @event Client#guildJoin
+                     * 
+                     * @param {Guild} guild
+                     * 
+                     */
                     this.events.emit('guildJoin', (guild));
                     break;
                 case 'MESSAGE_CREATE':
                     let message = new Message(data.d);
+
+                    /**
+                     * Emits when message was recieved
+                     * 
+                     * 
+                     * @event Client#Message
+                     * 
+                     * 
+                     * @param {Message} message
+                     */
                     this.events.emit('message', (message));
                     break;
                 
@@ -96,6 +146,11 @@ class BaseClient{
         })
     }
 
+    /**
+     * 
+     * @param {*} interval inverval of heartbeat
+     * @private
+     */
     async startHeartBeat(interval){
         setInterval(async() => {
             this.sendJson({
@@ -105,6 +160,14 @@ class BaseClient{
         }, interval)
     }
 
+
+
+    /**
+     * 
+     * @description load current user
+     * 
+     * @private
+     */
     async createUserClient(){
         const data = await axios('https://discordapp.com/api/v6/users/@me', {
             method: 'GET', 
@@ -116,17 +179,45 @@ class BaseClient{
         this.user = new ClientUser(data);
     }
 
+    /**
+     * 
+     * @description send JSON data
+     * 
+     * @param {*} data JSON data
+     */
+
     async sendJson(data){
         await this.ws.send(JSON.stringify(data));
     }
+
+    /**
+     * @description send auth json OP
+     * 
+     * @param {*} socket socket client
+     * 
+     * @private
+     */
 
     async callAuth(socket){
         socket.send(JSON.stringify(this.authOP))
     }
 
+    /**
+     * @description start bot
+     * 
+     * 
+     */
+
     async start(){
         await this.registerEvents()
     }
+
+    /**
+     * 
+     * @param {*} guildid GuildID
+     * 
+     * @private
+     */
 
     async loadChannels(guildid) {
         const data = await axios(`https://discord.com/api/v6/guilds/${guildid}/channels`, {
@@ -139,6 +230,15 @@ class BaseClient{
         return data;
     }
 
+    /**
+     * 
+     * @description Load roles
+     * 
+     * @param {*} guildid 
+     * 
+     * @private
+     */
+
     async loadRoles(guildid) {
         const data = await axios(`https://discord.com/api/v6/guilds/${guildid}/roles`, {
             method: 'GET',
@@ -149,6 +249,13 @@ class BaseClient{
 
         return data;
     }
+
+    /**
+     * 
+     * @description load guilds
+     * 
+     * @private
+     */
 
     async loadGuilds() {
         const data = await axios('https://discord.com/api/v6/users/@me/guilds', {
@@ -182,12 +289,28 @@ class BaseClient{
         }
     }
 
+    /**
+     * 
+     * @description login bot in client
+     * 
+     * @param {*} token  Bot token
+     * @param {*} bot is bot?
+     */
+
     async login(token, bot = true) {
         
         this.token = `${bot ? 'Bot ' : ''}${token}`;
         this.authOP.d.token = `${bot ? 'Bot ' : ''}${token}`
         await this.loadGuilds()
     }
+
+    /**
+     * 
+     * @description logins and starts bot
+     * 
+     * @param {*} token Bot token
+     * @param {*} bot is bot?
+     */
 
     async run(token, bot = true) {
         await this.login(token, bot);

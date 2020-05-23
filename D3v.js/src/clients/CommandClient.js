@@ -4,6 +4,20 @@ const Enmap = require('enmap');
 
 const fs = require('fs');
 
+const Message = require('../types/Message')
+
+
+/**
+ * @description Client with build-in command handler!
+ * 
+ * @extends {Client} client
+ * 
+ * 
+ * @example
+ * const bot = new CommandClient({prefix: '!', commandDir: 'cmds'});
+ * 
+ * 
+ */
 class CommandClient extends Client{
     constructor(options){
         super(options);
@@ -32,8 +46,29 @@ class CommandClient extends Client{
         this.commands.set(command.name, command)
     }
 
+
+    /**
+     * @description executes the command
+     * 
+     * @param {String} commandName Command Name
+     * @param {Message} message Message for command
+     * @param {Array} args args array
+     * 
+     * 
+     * @throws {CommandInvokeError} command invoke error
+     * 
+     * @example
+     * await execute('auff', message, args) 
+     */
     async execute(commandName, message, args){
         try{
+            /**
+             * @event
+             * 
+             * @param {String} commandName Command Name
+             * @param {Message} message Message for command
+             * @param {Array} arguments arguments array
+             */
         this.emit('commandInvoke', (commandName, message, args))
         let command = this.commands.get(commandName);
 
@@ -41,11 +76,22 @@ class CommandClient extends Client{
 
         await command.execute(message, args).catch(e => this.emit('commandInvokeError', message, args, e));
         }catch(e){
-
+                /**
+                 * @event CommandClient#commandInvokeError
+                 * 
+                 * @param {Message} message
+                 * @param {Array} command args
+                 * @param {Error} error
+                 */
                 this.emit('commandInvokeError', message, args, e)
         }
         
     }
+
+    /**
+     * 
+     * @param {*} directory 
+     */
 
 
     loadCommandsFromDirectory(directory = this.commandDir){

@@ -10,6 +10,12 @@ const Role = require('../types/Role');
 
 const ApiRequest = require('../types/ApiRequest')
 
+
+/**
+ * @description Client
+ * @public
+ * @extends {BaseClient}
+ */
 class Client extends BaseClient{
     constructor(options){
         super(options)
@@ -21,9 +27,26 @@ class Client extends BaseClient{
         this.events.on(...args)
     }
 
+    /**
+     * 
+     * @param  {...any} args emit args
+     * 
+     * @private
+     */
     emit(...args){
         this.events.emit(...args)
     }
+
+    /**
+     * 
+     * @description Get User by ID
+     * 
+     * @param {*} userid User ID
+     * 
+     * @returns {User} user if its exists
+     * 
+     * 
+     */
 
     async fetchUser(userid) {
         const data = await axios(`https://discordapp.com/api/v6/users/${userid}`, {
