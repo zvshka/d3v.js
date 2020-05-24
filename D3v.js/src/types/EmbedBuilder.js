@@ -74,27 +74,6 @@ class EmbedBuild {
         return this;
     }
 
-    build() {
-        return {
-            title: this.title,
-            description: this.description,
-            url: this.url,
-            color: this.color,
-            timestamp: this.timestamp && new Date(this.timestamp) || null,
-            author: {
-                name: this.author.name,
-                icon_url: this.author.icon_url,
-                url: this.author.url
-            },
-            footer: {
-                text: this.footer.text,
-                icon_url: this.footer.icon_url,
-            },
-            image: this.image,
-            thumbnail: this.thumbnail,
-            fields: this.fields
-        };
-    }
 }
 
 module.exports = EmbedBuild;
